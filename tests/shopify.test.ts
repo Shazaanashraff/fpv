@@ -9,11 +9,20 @@ jest.mock('axios', () => ({
     post: mockPost,
     put: mockPut,
     interceptors: {
+      request: {
+        use: jest.fn(),
+      },
       response: {
         use: jest.fn(),
       },
     },
   })),
+}));
+
+// Mock the token service
+jest.mock('../src/services/shopify-token.service', () => ({
+  getShopifyAccessToken: jest.fn().mockResolvedValue('test_token'),
+  isUsingOAuthRefresh: jest.fn().mockReturnValue(false),
 }));
 
 import { shopifyService } from '../src/services/shopify.service';

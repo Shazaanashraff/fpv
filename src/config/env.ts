@@ -18,8 +18,12 @@ const envSchema = z.object({
 
   // Shopify
   SHOPIFY_STORE_URL: z.string().min(1, 'SHOPIFY_STORE_URL is required'),
-  SHOPIFY_ADMIN_API_ACCESS_TOKEN: z.string().min(1, 'SHOPIFY_ADMIN_API_ACCESS_TOKEN is required'),
+  SHOPIFY_ADMIN_API_ACCESS_TOKEN: z.string().default(''),
   SHOPIFY_API_VERSION: z.string().default('2024-01'),
+  
+  // Shopify OAuth (optional - for auto-refresh tokens)
+  SHOPIFY_CLIENT_ID: z.string().optional(),
+  SHOPIFY_CLIENT_SECRET: z.string().optional(),
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.string().default('60000'),
@@ -65,6 +69,8 @@ export const config = {
     storeUrl: envVars.SHOPIFY_STORE_URL,
     accessToken: envVars.SHOPIFY_ADMIN_API_ACCESS_TOKEN,
     apiVersion: envVars.SHOPIFY_API_VERSION,
+    clientId: envVars.SHOPIFY_CLIENT_ID,
+    clientSecret: envVars.SHOPIFY_CLIENT_SECRET,
   },
 
   rateLimit: {

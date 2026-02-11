@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
+import { getShopifyAccessToken, isUsingOAuthRefresh } from './shopify-token.service';
 
 interface ShopifyCustomer {
   id: number;
@@ -47,10 +48,19 @@ class ShopifyService {
       baseURL: this.baseUrl,
       headers: {
         'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': config.shopify.accessToken,
       },
       timeout: 30000,
     });
+
+    // Add request interceptor to inject fresh token
+    this.client.interceptors.request.use(
+      async (requestConfig) => {
+        const token = await this.getToken();
+        requestConfig.headers['X-Shopify-Access-Token'] = token;
+        return requestConfig;
+      },
+      (error) => Promise.reject(error)
+    );
 
     // Add response interceptor for logging
     this.client.interceptors.response.use(
@@ -64,6 +74,18 @@ class ShopifyService {
         throw error;
       }
     );
+  }
+
+  /**
+   * Gets the appropriate token - either from OAuth refresh or static config
+   */
+  private async getToken(): Promise<string> {
+    if (isUsingOAuthRefresh()) {
+      // Use dynamic OAuth token with auto-refresh
+      return await getShopifyAccessToken();
+    }
+    // Fall back to static token from config
+    return config.shopify.accessToken;
   }
 
   /**
