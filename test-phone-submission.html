@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Number Submission Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .field {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #333;
+            color: white;
+            cursor: pointer;
+            margin-top: 10px;
+            border: none;
+        }
+        button:hover {
+            background: #555;
+        }
+        .output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #333;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            color: #28a745;
+            border-left-color: #28a745;
+        }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .info li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Phone Number Submission Test</h1>
+        
+        <div class="info">
+            <h3>How This Works:</h3>
+            <ul>
+                <li><strong>Frontend (Shopify Form):</strong> Collects phone number, validates with OTP</li>
+                <li><strong>Backend (Vercel API):</strong> Only handles OTP send/verify via Twilio</li>
+                <li><strong>Shopify (Form Submit):</strong> Receives phone number when form posts</li>
+            </ul>
+            <p><strong>Important:</strong> The Vercel backend does NOT send data to Shopify. When you click "Create Account", the browser submits the form to Shopify directly with all field values including the phone number.</p>
+        </div>
+
+        <form id="testForm">
+            <div class="field">
+                <label for="firstName">First Name:</label>
+                <input type="text" id="firstName" name="customer[first_name]" value="Test" required>
+            </div>
+
+            <div class="field">
+                <label for="lastName">Last Name:</label>
+                <input type="text" id="lastName" name="customer[last_name]" value="User" required>
+            </div>
+
+            <div class="field">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="customer[email]" value="test@example.com" required>
+            </div>
+
+            <div class="field">
+                <label for="phone">Phone (visible input - NOT submitted):</label>
+                <input type="tel" id="phone" placeholder="+971501234567">
+            </div>
+
+            <div class="field">
+                <label for="phoneHidden">Phone Hidden Input (THIS gets submitted):</label>
+                <input type="text" id="phoneHidden" name="customer[phone]" placeholder="Will be filled by JavaScript" readonly>
+            </div>
+
+            <div class="field">
+                <label for="phoneBackup">Phone Backup in Notes:</label>
+                <input type="text" id="phoneBackup" name="customer[note][verified_phone]" placeholder="Backup copy" readonly>
+            </div>
+
+            <button type="button" onclick="simulatePhoneVerification()">Simulate Phone Verification</button>
+            <button type="submit">Submit Form (Check Console)</button>
+        </form>
+
+        <div id="output"></div>
+    </div>
+
+    <script>
+        function simulatePhoneVerification() {
+            const phoneInput = document.getElementById('phone');
+            const phoneHiddenInput = document.getElementById('phoneHidden');
+            const phoneBackupInput = document.getElementById('phoneBackup');
+            const output = document.getElementById('output');
+
+            // Simulate getting E.164 formatted number
+            const phoneNumber = phoneInput.value || '+971501234567';
+            
+            // Set the hidden inputs (this is what happens after OTP verification)
+            phoneHiddenInput.value = phoneNumber;
+            phoneBackupInput.value = phoneNumber;
+
+            output.className = 'output success';
+            output.textContent = `✅ Phone verification simulated!\n\nPhone set to: ${phoneNumber}\nHidden input value: ${phoneHiddenInput.value}\nBackup input value: ${phoneBackupInput.value}`;
+        }
+
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const output = document.getElementById('output');
+            
+            let result = '=== FORM DATA THAT WILL BE SENT TO SHOPIFY ===\n\n';
+            
+            for (let pair of formData.entries()) {
+                result += `${pair[0]}: ${pair[1]}\n`;
+            }
+            
+            result += '\n=== VERIFICATION ===\n';
+            
+            const phoneValue = formData.get('customer[phone]');
+            if (phoneValue) {
+                result += `✅ SUCCESS: customer[phone] has value: ${phoneValue}\n`;
+                result += '\nThis phone number WILL be saved to Shopify customer record!';
+            } else {
+                result += '❌ ERROR: customer[phone] is empty!\n';
+                result += 'The phone number will NOT be saved to Shopify!';
+            }
+
+            output.className = phoneValue ? 'output success' : 'output';
+            output.textContent = result;
+
+            console.log('=== FORM SUBMISSION TEST ===');
+            console.log('Form action:', this.action || 'Not set (would go to Shopify create_customer)');
+            console.log('Form method:', this.method);
+            console.log('FormData entries:');
+            for (let pair of formData.entries()) {
+                console.log(`  ${pair[0]}: ${pair[1]}`);
+            }
+        });
+
+        // Auto-fill on page load
+        window.addEventListener('load', function() {
+            simulatePhoneVerification();
+        });
+    </script>
+</body>
+</html>

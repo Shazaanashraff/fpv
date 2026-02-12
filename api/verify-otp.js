@@ -2,7 +2,10 @@ const twilio = require('twilio');
 
 module.exports = async (req, res) => {
     // Set CORS headers — use ALLOWED_ORIGIN env var to restrict in production
-    const allowedOrigin = process.env.ALLOWED_ORIGIN || '*';
+    let allowedOrigin = (process.env.ALLOWED_ORIGIN || '*')
+        .replace(/[\r\n\t\s]+/g, '') // Remove all whitespace chars
+        .replace(/^["']+|["']+$/g, ''); // Remove quotes
+    if (!allowedOrigin) allowedOrigin = '*';
     res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -38,9 +41,9 @@ module.exports = async (req, res) => {
     }
 
     // Read Twilio credentials from environment variables
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+    const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
+    const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
+    const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID?.trim();
 
     if (!accountSid || !authToken || !verifyServiceSid) {
         console.error('Missing Twilio environment variables');
@@ -67,16 +70,23 @@ module.exports = async (req, res) => {
                 data: {
                     status: verificationCheck.status,
                     to: phone,
+                    valid: true,
                 },
             });
         } else {
             return res.status(400).json({
                 success: false,
                 error: 'Invalid OTP code. Please try again.',
+                data: {
+                    status: verificationCheck.status,
+                    valid: false,
+                },
             });
         }
     } catch (error) {
         console.error('Twilio API error:', error.message);
+        console.error('Error code:', error.code);
+        console.error('Error details:', error);
 
         if (error.code === 20404) {
             return res.status(400).json({
@@ -92,9 +102,18 @@ module.exports = async (req, res) => {
             });
         }
 
+        if (error.code === 60200) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid verification code.',
+            });
+        }
+
         return res.status(500).json({
             success: false,
             error: 'Failed to verify OTP. Please try again later.',
+            errorCode: error.code,
+            errorDetails: error.toString(),
         });
     }
 };
