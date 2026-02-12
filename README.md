@@ -1,288 +1,174 @@
-# Shopify Custom Registration Backend with Twilio OTP
+# Vercel OTP API — Twilio Verify
 
-A production-ready Node.js backend for a custom Shopify signup system with phone verification using Twilio Verify API.
+A minimal Node.js backend deployed on **Vercel** as a serverless function. Provides a single API endpoint to send OTP verification codes via **Twilio Verify SMS**.
 
 ## Features
 
-- **Phone OTP Verification**: Secure phone verification using Twilio Verify API
-- **Shopify Integration**: Customer creation via Shopify Admin REST API with metafields
-- **Redis Session Management**: Cooldown and verification state management
-- **Rate Limiting**: Protects against abuse with configurable rate limits
-- **Input Validation**: Zod-based request validation
-- **TypeScript**: Full type safety throughout the codebase
-- **Comprehensive Tests**: Jest + Supertest with mocked external services
+- ✅ Vercel serverless — no Express, no `app.listen()`
+- ✅ Single `POST /api/send-otp` endpoint
+- ✅ Twilio Verify API for SMS OTP delivery
+- ✅ E.164 phone number validation
+- ✅ CORS headers included
+- ✅ Proper JSON error responses
 
-## System Flow
+## Folder Structure
 
-1. **Send OTP** (`POST /api/send-otp`)
-   - Validates phone number format
-   - Converts to E.164 format
-   - Checks for duplicate phone in Shopify
-   - Sends OTP via Twilio Verify
-   - Sets 60-second resend cooldown
-
-2. **Verify OTP** (`POST /api/verify-otp`)
-   - Validates OTP code
-   - Verifies via Twilio Verify API
-   - Marks phone as verified in Redis (10-minute TTL)
-
-3. **Register** (`POST /api/register`)
-   - Validates all fields
-   - Confirms phone is verified
-   - Checks for duplicate phone/email
-   - Creates Shopify customer with metafields
-   - Adds `phone_verified` tag
-
-## Prerequisites
-
-- Node.js 18+ 
-- Redis server
-- Twilio account with Verify service
-- Shopify store with Admin API access
-
-## Installation
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd shopify-registration-backend
-
-# Install dependencies
-npm install
-
-# Copy environment file
-cp .env.example .env
-
-# Edit .env with your credentials
+```
+fpv/
+├── api/
+│   └── send-otp.js      # Serverless function
+├── .env.example          # Environment variable template
+├── .gitignore
+├── package.json
+├── vercel.json           # Vercel configuration
+└── README.md
 ```
 
-## Environment Variables
+---
+
+## Step-by-Step Setup
+
+### 1. Initialize the Project
+
+```bash
+# If starting fresh (already done in this repo):
+mkdir fpv && cd fpv
+npm init -y
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install twilio
+```
+
+### 3. Create the Folder Structure
+
+```bash
+mkdir api
+```
+
+### 4. Add the API Code
+
+Create `api/send-otp.js` — this is the serverless function that Vercel auto-maps to `POST /api/send-otp`.
+
+The function:
+- Accepts `POST` requests with JSON body `{ "phone": "+94XXXXXXXXX" }`
+- Validates the phone number format (E.164)
+- Sends an OTP via Twilio Verify SMS
+- Returns JSON success/error responses
+
+### 5. Set Up Environment Variables
+
+Copy the template and fill in your Twilio credentials:
+
+```bash
+cp .env.example .env
+```
 
 ```env
-# Server Configuration
-PORT=3000
-NODE_ENV=development
-
-# Twilio Configuration
 TWILIO_ACCOUNT_SID=your_twilio_account_sid
 TWILIO_AUTH_TOKEN=your_twilio_auth_token
 TWILIO_VERIFY_SERVICE_SID=your_twilio_verify_service_sid
-
-# Shopify Configuration
-SHOPIFY_STORE_URL=your-store.myshopify.com
-SHOPIFY_ADMIN_API_ACCESS_TOKEN=your_shopify_admin_api_access_token
-SHOPIFY_API_VERSION=2024-01
-
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_DB=0
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=60000
-RATE_LIMIT_MAX_REQUESTS=10
-
-# OTP Configuration
-OTP_COOLDOWN_SECONDS=60
-OTP_VERIFICATION_TTL_SECONDS=600
 ```
 
-## Running the Application
+> **Where to get these:**
+> 1. Sign up at [twilio.com](https://www.twilio.com)
+> 2. Find your **Account SID** and **Auth Token** on the [Twilio Console](https://console.twilio.com)
+> 3. Create a **Verify Service** under Verify → Services → Create, then copy the **Service SID**
 
-### Development
-```bash
-npm run dev
-```
+### 6. Deploy to Vercel
 
-### Production
-```bash
-npm run build
-npm start
-```
-
-## Running Tests
+#### Option A: Using Vercel CLI
 
 ```bash
-# Run all tests
-npm test
+# Install Vercel CLI globally
+npm install -g vercel
 
-# Run tests in watch mode
-npm run test:watch
+# Deploy (follow the prompts)
+vercel
 ```
 
-## API Endpoints
+#### Option B: Using Git (recommended)
 
-### Health Check
-```http
-GET /health
+1. Push this repo to GitHub
+2. Go to [vercel.com](https://vercel.com) → **Add New Project**
+3. Import your GitHub repository
+4. Vercel auto-detects the `api/` folder — no extra config needed
+5. Click **Deploy**
+
+### 7. Set Environment Variables in Vercel
+
+1. Go to your project on [vercel.com](https://vercel.com)
+2. Navigate to **Settings → Environment Variables**
+3. Add these three variables:
+
+| Name | Value |
+|------|-------|
+| `TWILIO_ACCOUNT_SID` | Your Twilio Account SID |
+| `TWILIO_AUTH_TOKEN` | Your Twilio Auth Token |
+| `TWILIO_VERIFY_SERVICE_SID` | Your Twilio Verify Service SID |
+
+4. **Redeploy** the project for the variables to take effect
+
+### 8. Test the API
+
+```bash
+curl -X POST https://your-project.vercel.app/api/send-otp \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "+94771234567"}'
 ```
 
-### Send OTP
-```http
-POST /api/send-otp
-Content-Type: application/json
+---
 
+## API Reference
+
+### `POST /api/send-otp`
+
+Send an OTP verification code via SMS.
+
+**Request Body:**
+```json
 {
-  "phone": "+11234567890"
+  "phone": "+94771234567"
 }
 ```
 
-**Success Response:**
+**Success Response (200):**
 ```json
 {
   "success": true,
-  "message": "Verification code sent successfully",
+  "message": "OTP sent successfully",
   "data": {
-    "phone": "+1******7890",
-    "cooldownSeconds": 60
+    "status": "pending",
+    "to": "+94771234567"
   }
 }
 ```
 
-### Verify OTP
-```http
-POST /api/verify-otp
-Content-Type: application/json
+**Error Responses:**
 
-{
-  "phone": "+11234567890",
-  "code": "123456"
-}
+| Status | Scenario | Example |
+|--------|----------|---------|
+| `400` | Missing or invalid phone | `{ "success": false, "error": "Missing or invalid \"phone\" field..." }` |
+| `400` | Bad phone format | `{ "success": false, "error": "Invalid phone number format..." }` |
+| `405` | Wrong HTTP method | `{ "success": false, "error": "Method not allowed. Use POST." }` |
+| `429` | Too many attempts | `{ "success": false, "error": "Max verification attempts reached..." }` |
+| `500` | Server/Twilio error | `{ "success": false, "error": "Failed to send OTP..." }` |
+
+---
+
+## Local Development
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Run locally (reads .env file automatically)
+vercel dev
 ```
 
-**Success Response:**
-```json
-{
-  "success": true,
-  "message": "Phone number verified successfully",
-  "data": {
-    "phone": "+1******7890",
-    "verified": true,
-    "expiresInSeconds": 600
-  }
-}
-```
-
-### Register
-```http
-POST /api/register
-Content-Type: application/json
-
-{
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "john.doe@example.com",
-  "password": "SecurePassword123",
-  "phone": "+11234567890"
-}
-```
-
-**Success Response:**
-```json
-{
-  "success": true,
-  "message": "Registration successful",
-  "data": {
-    "customerId": 12345678,
-    "email": "john.doe@example.com",
-    "firstName": "John",
-    "lastName": "Doe",
-    "phone": "+1******7890"
-  }
-}
-```
-
-## Error Responses
-
-All errors follow this format:
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human readable message"
-  }
-}
-```
-
-### Error Codes
-
-| Code | HTTP Status | Description |
-|------|-------------|-------------|
-| `VALIDATION_ERROR` | 400 | Invalid request data |
-| `OTP_SEND_FAILED` | 400 | Failed to send OTP |
-| `OTP_VERIFICATION_FAILED` | 400 | Invalid or expired code |
-| `OTP_COOLDOWN` | 429 | Must wait before resending |
-| `PHONE_NOT_VERIFIED` | 403 | Phone not verified |
-| `PHONE_EXISTS` | 409 | Phone already registered |
-| `EMAIL_EXISTS` | 409 | Email already registered |
-| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
-| `NOT_FOUND` | 404 | Route not found |
-| `INTERNAL_ERROR` | 500 | Server error |
-
-## Project Structure
-
-```
-src/
-├── app.ts                 # Express app configuration
-├── server.ts              # Server startup and graceful shutdown
-├── config/
-│   └── env.ts             # Environment variables validation
-├── controllers/
-│   └── auth.controller.ts # Request handlers
-├── middleware/
-│   ├── errorHandler.ts    # Global error handling
-│   ├── logger.ts          # Request logging
-│   └── rateLimit.ts       # Rate limiting middleware
-├── routes/
-│   └── auth.routes.ts     # API routes
-├── services/
-│   ├── redis.service.ts   # Redis operations
-│   ├── shopify.service.ts # Shopify API integration
-│   └── twilio.service.ts  # Twilio Verify API
-├── utils/
-│   ├── logger.ts          # Winston logger
-│   └── phone.ts           # Phone number utilities
-└── validators/
-    └── auth.validator.ts  # Zod validation schemas
-
-tests/
-├── setup.ts               # Test configuration
-├── auth.test.ts           # Auth endpoints tests
-├── shopify.test.ts        # Shopify service tests
-├── twilio.test.ts         # Twilio service tests
-├── redis.test.ts          # Redis service tests
-└── phone.test.ts          # Phone utilities tests
-```
-
-## Shopify Setup
-
-### Required Scopes
-Your Shopify Admin API access token needs these scopes:
-- `read_customers`
-- `write_customers`
-
-### Metafields
-The application creates these customer metafields:
-- `custom.phone_e164` - Phone in E.164 format
-- `custom.phone_verified` - Boolean verification status
-- `custom.phone_verified_at` - ISO timestamp of verification
-
-## Twilio Setup
-
-1. Create a Twilio account at https://twilio.com
-2. Create a Verify Service in the Twilio Console
-3. Copy your Account SID, Auth Token, and Verify Service SID
-
-## Security Considerations
-
-- All secrets are stored in environment variables
-- Rate limiting prevents brute force attacks
-- Input validation on all endpoints
-- Passwords require uppercase, lowercase, and numbers
-- Phone numbers are masked in responses
-- Helmet middleware for security headers
+The API will be available at `http://localhost:3000/api/send-otp`.
 
 ## License
 

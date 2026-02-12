@@ -1,0 +1,170 @@
+{% comment %}
+  OTP Verification Form — Shopify Liquid Snippet
+  
+  HOW TO USE:
+  1. Go to Shopify Admin → Online Store → Themes → Edit Code
+  2. Under "Sections" or "Snippets", create a new snippet called "otp-form"
+  3. Paste this entire file content
+  4. Include it in any template with:  {% render 'otp-form' %}
+  
+  IMPORTANT: Replace YOUR_VERCEL_URL below with your actual Vercel deployment URL
+  Your Shopify store: https://hxnxj0-zq.myshopify.com
+{% endcomment %}
+
+<style>
+  .otp-section {
+    max-width: 420px;
+    margin: 40px auto;
+    padding: 32px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  .otp-section h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #1a1a1a;
+  }
+
+  .otp-section p {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 24px;
+  }
+
+  .otp-form__group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .otp-form__input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .otp-form__input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+
+  .otp-form__btn {
+    padding: 12px 24px;
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .otp-form__btn:hover {
+    background: #4338ca;
+  }
+
+  .otp-form__btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+
+  .otp-form__message {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    display: none;
+  }
+
+  .otp-form__message--success {
+    display: block;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+  }
+
+  .otp-form__message--error {
+    display: block;
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+</style>
+
+<div class="otp-section">
+  <h2>Phone Verification</h2>
+  <p>Enter your phone number to receive a one-time password via SMS.</p>
+  
+  <div class="otp-form__group">
+    <input 
+      type="tel" 
+      id="otp-phone-input" 
+      class="otp-form__input" 
+      placeholder="+94771234567"
+      aria-label="Phone number"
+    />
+    <button id="otp-send-btn" class="otp-form__btn" onclick="handleSendOtp()">
+      Send OTP
+    </button>
+  </div>
+
+  <div id="otp-message" class="otp-form__message"></div>
+</div>
+
+<script>
+  // ⚠️ REPLACE THIS with your actual Vercel deployment URL
+  const OTP_API_URL = 'https://fpv-lovat.vercel.app/api/send-otp';
+
+  async function handleSendOtp() {
+    const phoneInput = document.getElementById('otp-phone-input');
+    const messageDiv = document.getElementById('otp-message');
+    const sendBtn = document.getElementById('otp-send-btn');
+    const phone = phoneInput.value.trim();
+
+    // Reset message
+    messageDiv.className = 'otp-form__message';
+    messageDiv.textContent = '';
+
+    // Client-side validation
+    if (!phone) {
+      showMessage(messageDiv, 'Please enter your phone number.', 'error');
+      return;
+    }
+
+    // Disable button while loading
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
+
+    try {
+      const response = await fetch(OTP_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showMessage(messageDiv, '✓ OTP sent! Check your phone for the verification code.', 'success');
+      } else {
+        showMessage(messageDiv, data.error || 'Failed to send OTP. Please try again.', 'error');
+      }
+    } catch (err) {
+      showMessage(messageDiv, 'Network error. Please check your connection and try again.', 'error');
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send OTP';
+    }
+  }
+
+  function showMessage(el, text, type) {
+    el.textContent = text;
+    el.className = 'otp-form__message otp-form__message--' + type;
+  }
+</script>

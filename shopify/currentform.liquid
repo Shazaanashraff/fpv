@@ -1,0 +1,1060 @@
+{%- comment %} Edited by Shazaan Ashraff {% endcomment -%}
+
+<style>
+  #shopify-section-{{ section.id }} {
+    --section-padding-top: {{ section.settings.padding_top }}px;
+    --section-padding-bottom: {{ section.settings.padding_bottom }}px;
+  }
+
+  /* Inline error messages */
+  .phone-error {
+    color: #ff3b30;
+    font-size: 0.875rem;
+    margin-top: 4px;
+    display: none;
+  }
+
+  .input.invalid {
+    border-color: #ff3b30;
+  }
+
+  /* Phone field styling - flex layout */
+  .phone-field {
+    position: relative;
+  }
+
+  .phone-field .iti {
+    width: 100%;
+    display: flex !important;
+    background: #f5f5f5;
+  }
+
+  .phone-field .iti__flag-container {
+    position: relative !important;
+    flex-shrink: 0;
+  }
+
+  .phone-field .iti__selected-flag {
+    position: relative !important;
+    padding: 0 16px;
+    background-color: transparent;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    border-right: 1px solid #ddd;
+  }
+
+  .phone-field .iti__selected-dial-code {
+    font-size: 1rem;
+    color: #333;
+    padding-left: 4px;
+  }
+
+  .phone-field .iti__arrow {
+    margin-left: 10px;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid #555;
+  }
+
+  .phone-field .iti__arrow--up {
+    border-top: none;
+    border-bottom: 5px solid #555;
+  }
+
+  .phone-field .iti__country-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    max-height: 250px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    margin-top: 4px;
+    width: 300px;
+  }
+
+  .phone-field .iti__country {
+    padding: 10px 12px;
+  }
+
+  .phone-field .iti__country:hover {
+    background-color: #f5f5f5;
+  }
+
+  .phone-field .iti__country.iti__highlight {
+    background-color: #e8f4fd;
+  }
+
+  /* Style the phone input - no overlay */
+  .phone-field .iti input,
+  .phone-field .iti input.input,
+  .phone-field .phone-input {
+    flex: 1;
+    padding-left: 16px !important;
+    background: transparent;
+    border: none;
+    outline: none;
+  }
+
+  /* Hide the floating label for phone field */
+  .phone-field .label.is-floating {
+    display: none;
+  }
+
+  /* Phone field with Send OTP button */
+  .phone-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .phone-wrapper .phone-field {
+    flex: 1;
+  }
+
+  .send-otp-btn {
+    padding: 0 20px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    transition: background-color 0.2s ease;
+  }
+
+  .send-otp-btn:hover:not(:disabled) {
+    background-color: #555;
+  }
+
+  .send-otp-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+
+  .send-otp-btn.sent {
+    background-color: #28a745;
+  }
+
+  /* OTP Section */
+  .otp-section {
+    display: none;
+    margin-top: 15px;
+  }
+
+  .otp-section.visible {
+    display: block;
+  }
+
+  .otp-label {
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .otp-inputs {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+  }
+
+  .otp-input {
+    width: 45px;
+    height: 50px;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 600;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #f5f5f5;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+
+  .otp-input:focus {
+    border-color: #333;
+    background: #fff;
+  }
+
+  .otp-input.invalid {
+    border-color: #ff3b30;
+  }
+
+  .otp-input.valid {
+    border-color: #28a745;
+  }
+
+  .otp-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 12px;
+  }
+
+  .verify-otp-btn {
+    padding: 10px 20px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+  }
+
+  .verify-otp-btn:hover:not(:disabled) {
+    background-color: #555;
+  }
+
+  .verify-otp-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+
+  .resend-link {
+    font-size: 0.85rem;
+    color: #666;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .resend-link:hover {
+    color: #333;
+  }
+
+  .resend-link.disabled {
+    color: #ccc;
+    cursor: not-allowed;
+    text-decoration: none;
+  }
+
+  .otp-message {
+    font-size: 0.85rem;
+    margin-top: 8px;
+  }
+
+  .otp-message.success {
+    color: #28a745;
+  }
+
+  .otp-message.error {
+    color: #ff3b30;
+  }
+
+  .otp-verified-badge {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    color: #28a745;
+    font-size: 0.9rem;
+    margin-top: 8px;
+  }
+
+  .otp-verified-badge.visible {
+    display: flex;
+  }
+
+  /* Disabled submit button */
+  .button--primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+</style>
+
+{{ 'customer.css' | asset_url | stylesheet_tag }}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/css/intlTelInput.css">
+
+<div class="section section--padding{% if section.settings.divider %} section--divider{% endif %}{% if section.settings.rounded %} section--rounded relative{% endif %}">
+  <div class="page-width relative">
+    <div class="title-wrapper{% if section.settings.heading_size == 'title-xl' %} title-wrapper-lg{% endif %} text-center leading-none">
+      <{{ section.settings.heading_tag }} class="heading {{ section.settings.heading_size }}">
+        {%- assign heading_content = 'customer.register.title' | t -%}
+        {%- render 'heading-content', content: heading_content, style: 'none' -%}
+      </{{ section.settings.heading_tag }}>
+    </div>
+    
+    <div class="customer">
+      {%- form 'create_customer', class: 'grid gap-12', id: 'custom-register-form' -%}
+        {%- liquid
+          if form.errors
+            assign form_errors = form.errors | default_errors
+            render 'alert', status: 'error', content: form_errors
+          endif
+        -%}
+
+        <div class="grid gap-5">
+          <div class="field">
+            <input
+              type="text"
+              class="input is-floating"
+              name="customer[first_name]"
+              id="RegisterFormFirstName"
+              {% if form.first_name %}value="{{ form.first_name }}"{% endif %}
+              autocomplete="given-name"
+              placeholder="{{ 'customer.register.first_name' | t | escape }}"
+            />
+            <label class="label is-floating" for="RegisterFormFirstName">{{ 'customer.register.first_name' | t }}</label>
+          </div>
+
+          <div class="field">
+            <input
+              type="text"
+              class="input is-floating"
+              name="customer[last_name]"
+              id="RegisterFormLastName"
+              {% if form.last_name %}value="{{ form.last_name }}"{% endif %}
+              autocomplete="family-name"
+              placeholder="{{ 'customer.register.last_name' | t | escape }}"
+            />
+            <label class="label is-floating" for="RegisterFormLastName">{{ 'customer.register.last_name' | t }}</label>
+          </div>
+
+          <div class="field">
+            <input
+              required
+              class="input is-floating{% if form.errors contains 'email' %} invalid{% endif %}"
+              type="email"
+              name="customer[email]"
+              id="RegisterFormEmail"
+              spellcheck="false"
+              autocapitalize="off"
+              autocomplete="email"
+              placeholder="{{ 'customer.register.email' | t | escape }}"
+              {%- if form.email %} value="{{ form.email }}"{% endif -%}
+            />
+            <label class="label is-floating" for="RegisterFormEmail">{{ 'customer.register.email' | t }}</label>
+          </div>
+
+          <div class="field">
+            <input
+              required
+              class="input is-floating{% if form.errors contains 'password' %} invalid{% endif %}"
+              type="password"
+              name="customer[password]"
+              id="RegisterFormPassword"
+              placeholder="{{ 'customer.register.password' | t | escape }}"
+            />
+            <label class="label is-floating" for="RegisterFormPassword">{{ 'customer.register.password' | t }}</label>
+          </div>
+
+          <!-- Phone Number with Country Code and OTP -->
+          <div class="phone-otp-container">
+            <div class="phone-wrapper">
+              <div class="field phone-field">
+                <input
+                  type="tel"
+                  class="input phone-input"
+                  id="RegisterFormPhone"
+                  name="customer[phone]"
+                  placeholder="Phone Number"
+                  autocomplete="tel"
+                  required
+                />
+                <div class="phone-error" id="phone-error">Enter a valid phone number</div>
+              </div>
+              <button type="button" class="send-otp-btn" id="sendOtpBtn" disabled>Send OTP</button>
+            </div>
+            
+            <!-- OTP Input Section -->
+            <div class="otp-section" id="otpSection">
+              <span class="otp-label">Enter the 6-digit code sent to your phone</span>
+              <div class="otp-inputs">
+                <input type="text" class="otp-input" maxlength="1" data-index="0" inputmode="numeric" pattern="[0-9]" />
+                <input type="text" class="otp-input" maxlength="1" data-index="1" inputmode="numeric" pattern="[0-9]" />
+                <input type="text" class="otp-input" maxlength="1" data-index="2" inputmode="numeric" pattern="[0-9]" />
+                <input type="text" class="otp-input" maxlength="1" data-index="3" inputmode="numeric" pattern="[0-9]" />
+                <input type="text" class="otp-input" maxlength="1" data-index="4" inputmode="numeric" pattern="[0-9]" />
+                <input type="text" class="otp-input" maxlength="1" data-index="5" inputmode="numeric" pattern="[0-9]" />
+              </div>
+              <div class="otp-actions">
+                <button type="button" class="verify-otp-btn" id="verifyOtpBtn" disabled>Verify</button>
+                <span class="resend-link disabled" id="resendLink">Resend OTP (<span id="resendTimer">30</span>s)</span>
+              </div>
+              <div class="otp-message" id="otpMessage"></div>
+            </div>
+
+            <!-- Verified Badge -->
+            <div class="otp-verified-badge" id="otpVerifiedBadge">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.78 5.28l-4.5 6a.75.75 0 0 1-1.18.02l-2.25-2.5a.75.75 0 1 1 1.12-1l1.7 1.89 3.92-5.23a.75.75 0 1 1 1.2.9z"/>
+              </svg>
+              <span>Phone verified</span>
+            </div>
+
+            <!-- Hidden field to track verification status -->
+            <input type="hidden" id="phoneVerified" name="customer[note][phone_verified]" value="false" />
+          </div>
+
+          {%- for block in section.blocks -%}
+            {%- assign custom_name = block.settings.title | escape -%}
+            <div class="field" {{ block.shopify_attributes }}>
+              {%- if block.settings.type == 'checkbox' -%}
+                <label for="RegisterFormInput-{{ section.id }}-{{ block.id }}" class="flex items-center gap-3">
+                  <input
+                    type="hidden"
+                    name="customer[note][{{ custom_name }}]"
+                    value="{{ block.settings.unchecked_value | escape }}"
+                  />
+                  <input
+                    type="checkbox"
+                    id="RegisterFormInput-{{ section.id }}-{{ block.id }}"
+                    name="customer[note][{{ custom_name }}]"
+                    value="{{ block.settings.checked_value | escape }}"
+                    {%- if block.settings.required %} required{% endif -%}
+                  />
+                  {{- block.settings.title | escape -}}
+                </label>
+
+              {%- elsif block.settings.type == 'radio' -%}
+                <div class="grid gap-4">
+                  <p>{{ block.settings.title | escape }}</p>
+                  {%- assign options = block.settings.radio_options | split: ',' -%}
+                  {%- if options.size > 0 -%}
+                    <ul class="grid gap-2 leading-none" role="list">
+                      {%- for option in options -%}
+                        {%- assign option_2 = option | strip | escape -%}
+                        <li>
+                          <label for="RegisterFormInput-{{ section.id }}-{{ block.id }}-{{ forloop.index0 }}" class="inline-flex items-center gap-3">
+                            <input
+                              type="radio"
+                              id="RegisterFormInput-{{ section.id }}-{{ block.id }}-{{ forloop.index0 }}"
+                              name="customer[note][{{ custom_name }}]"
+                              value="{{ option_2 }}"
+                              {%- if block.settings.required %} required{% endif -%}
+                            />
+                            {{- option_2 -}}
+                          </label>
+                        </li>
+                      {%- endfor -%}
+                    </ul>
+                  {%- endif -%}
+                </div>
+
+              {%- else -%}
+                {%- case block.settings.type -%}
+                  {%- when 'text' -%}
+                    <input
+                      class="input is-floating"
+                      type="text"
+                      id="RegisterFormInput-{{ section.id }}-{{ block.id }}"
+                      name="customer[note][{{ custom_name }}]"
+                      placeholder="{{ block.settings.title | escape }}"
+                      {%- if block.settings.required %} required{% endif -%}
+                    />
+                    <label class="label is-floating" for="RegisterFormInput-{{ section.id }}-{{ block.id }}">{{ block.settings.title | escape }}</label>
+
+                  {%- when 'textarea' -%}
+                    <textarea
+                      class="textarea is-floating"
+                      rows="4"
+                      id="RegisterFormInput-{{ section.id }}-{{ block.id }}"
+                      name="customer[note][{{ custom_name }}]"
+                      placeholder=" "
+                      {%- if block.settings.required %} required{% endif -%}
+                    ></textarea>
+                    <label class="label is-floating" for="RegisterFormInput-{{ section.id }}-{{ block.id }}">{{ block.settings.title | escape }}</label>
+
+                  {%- when 'select' -%}
+                    {%- assign options = block.settings.select_options | split: ',' -%}
+                    {%- if options.size > 0 -%}
+                      <select
+                        class="select is-floating"
+                        id="RegisterFormInput-{{ section.id }}-{{ block.id }}"
+                        name="customer[note][{{ custom_name }}]"
+                        {%- if block.settings.required %} required{% else %} is="custom-select"{% endif -%}
+                      >
+                        <option value="" disabled selected></option>
+                        {%- for option in options -%}
+                          {%- assign option_2 = option | strip | escape -%}
+                          <option value="{{ option_2 }}">{{ option_2 }}</option>
+                        {%- endfor -%}
+                      </select>
+                      {%- render 'icon', icon: 'chevron-up', size: 'sm', class: 'absolute pointer-events-none' -%}
+                    {%- endif -%}
+                    <label class="label{% if options.size > 0 %} is-floating{% endif %}" for="RegisterFormInput-{{ section.id }}-{{ block.id }}">{{ block.settings.title | escape }}</label>
+                {%- endcase -%}
+              {%- endif -%}
+            </div>
+          {%- endfor -%}
+
+          {%- if section.settings.show_email_consent -%}
+            <div class="field">
+              <label for="RegisterFormEmailConsent" class="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="RegisterFormEmailConsent"
+                  name="customer[accepts_marketing]"
+                  value="1"
+                />
+                {{- 'customer.register.accepts_marketing' | t -}}
+              </label>
+            </div>
+          {%- endif -%}
+        </div>
+
+        <div class="grid gap-8">
+          <div class="button-group grid gap-4 md:grid-cols-2">
+            <button class="button button--primary button--fixed" type="submit" id="submitBtn" is="hover-button" disabled>
+              <span class="btn-fill" data-fill></span>
+              <span class="btn-text">{{ 'customer.register.submit' | t }}</span>
+            </button>
+            <a class="button button--secondary button--fixed" href="{{ routes.account_login_url }}" is="hover-link" rel="nofollow">
+              <span class="btn-fill" data-fill></span>
+              <span class="btn-text">{{ 'customer.register.sign_in' | t }}</span>
+            </a>
+          </div>
+          
+          <p class="text-center">
+            <a class="inline-flex gap-2" href="{{ routes.root_url }}">
+              {%- render 'icon', icon: 'return', size: 'sm' -%}
+              <span class="link text-lg leading-none">{{ 'customer.register.return' | t }}</span>
+            </a>
+          </p>
+        </div>
+      {%- endform -%}  
+    </div>
+  </div>
+</div>
+
+<!-- Include intl-tel-input JS -->
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/intlTelInput.min.js"></script>
+<script>
+  // Vercel API base URL for Twilio OTP service
+  const OTP_API_BASE = 'https://fpv-lovat.vercel.app/api';
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const phoneInput = document.querySelector("#RegisterFormPhone");
+    const phoneError = document.querySelector("#phone-error");
+
+    // Initialize intl-tel-input
+    const iti = window.intlTelInput(phoneInput, {
+      initialCountry: "us",
+      separateDialCode: true,
+      showFlags: false,
+      allowDropdown: true,
+      nationalMode: false,
+      formatOnDisplay: true,
+      utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/utils.js",
+    });
+
+    // OTP Elements
+    const sendOtpBtn = document.getElementById('sendOtpBtn');
+    const otpSection = document.getElementById('otpSection');
+    const otpInputs = document.querySelectorAll('.otp-input');
+    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    const resendLink = document.getElementById('resendLink');
+    const resendTimer = document.getElementById('resendTimer');
+    const otpMessage = document.getElementById('otpMessage');
+    const otpVerifiedBadge = document.getElementById('otpVerifiedBadge');
+    const phoneVerifiedInput = document.getElementById('phoneVerified');
+    const submitBtn = document.getElementById('submitBtn');
+
+    let isPhoneVerified = false;
+    let resendCountdown = null;
+
+    // Enable/disable Send OTP button based on valid phone
+    function updateSendOtpButton() {
+      if (phoneInput.value.trim() !== "" && iti.isValidNumber() && !isPhoneVerified) {
+        sendOtpBtn.disabled = false;
+      } else {
+        sendOtpBtn.disabled = true;
+      }
+    }
+
+    // Update submit button state
+    function updateSubmitButton() {
+      if (isPhoneVerified) {
+        submitBtn.disabled = false;
+      } else {
+        submitBtn.disabled = true;
+      }
+    }
+
+    // Validation on blur
+    phoneInput.addEventListener('blur', function() {
+      if (phoneInput.value.trim() !== "" && !iti.isValidNumber()) {
+        phoneInput.classList.add("invalid");
+        phoneError.style.display = "block";
+      } else {
+        phoneInput.classList.remove("invalid");
+        phoneError.style.display = "none";
+      }
+      updateSendOtpButton();
+    });
+
+    // Clear error on input and update button
+    phoneInput.addEventListener('input', function() {
+      phoneInput.classList.remove("invalid");
+      phoneError.style.display = "none";
+      // Reset verification if phone number changes
+      if (isPhoneVerified) {
+        isPhoneVerified = false;
+        phoneVerifiedInput.value = "false";
+        otpVerifiedBadge.classList.remove('visible');
+        otpSection.classList.remove('visible');
+        updateSubmitButton();
+      }
+      updateSendOtpButton();
+    });
+
+    // Send OTP button click
+    sendOtpBtn.addEventListener('click', async function() {
+      const fullNumber = iti.getNumber();
+      
+      sendOtpBtn.disabled = true;
+      sendOtpBtn.textContent = 'Sending...';
+
+      try {
+        // Call Vercel-hosted Twilio API to send OTP
+        const response = await fetch(OTP_API_BASE + '/send-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ phone: fullNumber }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          sendOtpBtn.textContent = 'Sent';
+          sendOtpBtn.classList.add('sent');
+          otpSection.classList.add('visible');
+          otpInputs[0].focus();
+          startResendTimer();
+          otpMessage.textContent = '';
+          otpMessage.className = 'otp-message';
+        } else {
+          throw new Error(data.error || 'Failed to send OTP');
+        }
+      } catch (error) {
+        console.error('Error sending OTP:', error);
+        sendOtpBtn.textContent = 'Send OTP';
+        sendOtpBtn.disabled = false;
+        otpMessage.textContent = error.message || 'Failed to send OTP. Please try again.';
+        otpMessage.className = 'otp-message error';
+        otpSection.classList.add('visible');
+      }
+    });
+
+    // OTP Input handling
+    otpInputs.forEach((input, index) => {
+      input.addEventListener('input', function(e) {
+        // Only allow numbers
+        this.value = this.value.replace(/[^0-9]/g, '');
+        
+        if (this.value.length === 1 && index < otpInputs.length - 1) {
+          otpInputs[index + 1].focus();
+        }
+
+        // Check if all inputs are filled
+        const otp = getOtpValue();
+        verifyOtpBtn.disabled = otp.length !== 6;
+      });
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Backspace' && this.value === '' && index > 0) {
+          otpInputs[index - 1].focus();
+        }
+      });
+
+      // Handle paste
+      input.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+        
+        for (let i = 0; i < pastedData.length && i < otpInputs.length; i++) {
+          otpInputs[i].value = pastedData[i];
+        }
+
+        const nextIndex = Math.min(pastedData.length, otpInputs.length - 1);
+        otpInputs[nextIndex].focus();
+
+        verifyOtpBtn.disabled = pastedData.length !== 6;
+      });
+    });
+
+    // Get OTP value from inputs
+    function getOtpValue() {
+      return Array.from(otpInputs).map(input => input.value).join('');
+    }
+
+    // Verify OTP button click
+    verifyOtpBtn.addEventListener('click', async function() {
+      const otp = getOtpValue();
+      const fullNumber = iti.getNumber();
+
+      verifyOtpBtn.disabled = true;
+      verifyOtpBtn.textContent = 'Verifying...';
+
+      try {
+        // Call Vercel-hosted Twilio API to verify OTP
+        const response = await fetch(OTP_API_BASE + '/verify-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ phone: fullNumber, otp: otp }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          isPhoneVerified = true;
+          phoneVerifiedInput.value = "true";
+          
+          // Update UI
+          otpSection.classList.remove('visible');
+          otpVerifiedBadge.classList.add('visible');
+          sendOtpBtn.style.display = 'none';
+          phoneInput.disabled = true;
+          
+          // Mark OTP inputs as valid
+          otpInputs.forEach(input => {
+            input.classList.add('valid');
+          });
+
+          otpMessage.textContent = 'Phone number verified successfully!';
+          otpMessage.className = 'otp-message success';
+
+          updateSubmitButton();
+          
+          // Clear resend timer
+          if (resendCountdown) {
+            clearInterval(resendCountdown);
+          }
+        } else {
+          throw new Error(data.error || 'Invalid OTP');
+        }
+      } catch (error) {
+        console.error('Error verifying OTP:', error);
+        verifyOtpBtn.textContent = 'Verify';
+        verifyOtpBtn.disabled = false;
+        
+        // Mark OTP inputs as invalid
+        otpInputs.forEach(input => {
+          input.classList.add('invalid');
+          input.value = '';
+        });
+        otpInputs[0].focus();
+
+        otpMessage.textContent = error.message || 'Invalid OTP. Please try again.';
+        otpMessage.className = 'otp-message error';
+      }
+    });
+
+    // Resend timer
+    function startResendTimer() {
+      let seconds = 30;
+      resendTimer.textContent = seconds;
+      resendLink.classList.add('disabled');
+
+      resendCountdown = setInterval(() => {
+        seconds--;
+        resendTimer.textContent = seconds;
+
+        if (seconds <= 0) {
+          clearInterval(resendCountdown);
+          resendLink.classList.remove('disabled');
+          resendLink.innerHTML = 'Resend OTP';
+        }
+      }, 1000);
+    }
+
+    // Resend OTP click
+    resendLink.addEventListener('click', async function() {
+      if (this.classList.contains('disabled')) return;
+
+      const fullNumber = iti.getNumber();
+      
+      this.textContent = 'Sending...';
+
+      try {
+        const response = await fetch(OTP_API_BASE + '/send-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ phone: fullNumber }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          otpMessage.textContent = 'OTP resent successfully!';
+          otpMessage.className = 'otp-message success';
+          startResendTimer();
+          
+          // Clear OTP inputs
+          otpInputs.forEach(input => {
+            input.value = '';
+            input.classList.remove('invalid');
+          });
+          otpInputs[0].focus();
+          verifyOtpBtn.disabled = true;
+        } else {
+          throw new Error(data.error || 'Failed to resend OTP');
+        }
+      } catch (error) {
+        console.error('Error resending OTP:', error);
+        this.innerHTML = 'Resend OTP';
+        otpMessage.textContent = error.message || 'Failed to resend OTP. Please try again.';
+        otpMessage.className = 'otp-message error';
+      }
+    });
+
+    // Before form submit, update the input value with full international number
+    const form = document.getElementById('custom-register-form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        if (!isPhoneVerified) {
+          e.preventDefault();
+          otpMessage.textContent = 'Please verify your phone number first.';
+          otpMessage.className = 'otp-message error';
+          return false;
+        }
+        phoneInput.value = iti.getNumber();
+      });
+    }
+
+    // Remove any duplicate phone fields that might exist from blocks
+    const allFields = document.querySelectorAll('.field');
+    allFields.forEach(field => {
+      const input = field.querySelector('input[type="tel"]');
+      if (input && input.id !== 'RegisterFormPhone' && !field.classList.contains('phone-field')) {
+        field.remove();
+      }
+    });
+
+    // Initialize button states
+    updateSendOtpButton();
+    updateSubmitButton();
+  });
+</script>
+
+
+{% schema %}
+{
+  "name": "t:sections.main-register.name",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.global.settings.header__heading.content"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "options": [
+        {
+          "value": "title-sm",
+          "label": "t:sections.global.settings.heading_size.options__1.label"
+        },
+        {
+          "value": "title-md",
+          "label": "t:sections.global.settings.heading_size.options__2.label"
+        },
+        {
+          "value": "title-lg tracking-heading",
+          "label": "t:sections.global.settings.heading_size.options__3.label"
+        },
+        {
+          "value": "title-xl tracking-heading",
+          "label": "t:sections.global.settings.heading_size.options__4.label"
+        }
+      ],
+      "default": "title-xl tracking-heading",
+      "label": "t:sections.global.settings.heading_size.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "options": [
+        {
+          "value": "h1",
+          "label": "t:sections.global.settings.heading_tag.options__1.label"
+        },
+        {
+          "value": "h2",
+          "label": "t:sections.global.settings.heading_tag.options__2.label"
+        },
+        {
+          "value": "h3",
+          "label": "t:sections.global.settings.heading_tag.options__3.label"
+        },
+        {
+          "value": "h4",
+          "label": "t:sections.global.settings.heading_tag.options__4.label"
+        },
+        {
+          "value": "h5",
+          "label": "t:sections.global.settings.heading_tag.options__5.label"
+        },
+        {
+          "value": "h6",
+          "label": "t:sections.global.settings.heading_tag.options__6.label"
+        },
+        {
+          "value": "div",
+          "label": "t:sections.global.settings.heading_tag.options__7.label"
+        },
+        {
+          "value": "span",
+          "label": "t:sections.global.settings.heading_tag.options__8.label"
+        },
+        {
+          "value": "p",
+          "label": "t:sections.global.settings.heading_tag.options__9.label"
+        }
+      ],
+      "default": "h1",
+      "label": "t:sections.global.settings.heading_tag.label",
+      "info": "t:sections.global.settings.heading_tag.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_email_consent",
+      "label": "t:sections.main-register.settings.show_email_consent.label",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:sections.global.settings.header__section.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.global.settings.padding_top.label",
+      "default": 72
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.global.settings.padding_bottom.label",
+      "default": 100
+    },
+    {
+      "type": "checkbox",
+      "id": "divider",
+      "label": "t:sections.global.settings.divider.label",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "rounded",
+      "default": false,
+      "label": "t:sections.global.settings.rounded.label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "custom_field",
+      "name": "t:sections.main-register.blocks.custom_field.name",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.main-register.blocks.custom_field.settings.paragraph.content"
+        },
+        {
+          "type": "select",
+          "id": "type",
+          "options": [
+            {
+              "value": "text",
+              "label": "t:sections.main-register.blocks.custom_field.settings.type.options__1.label"
+            },
+            {
+              "value": "textarea",
+              "label": "t:sections.main-register.blocks.custom_field.settings.type.options__2.label"
+            },
+            {
+              "value": "checkbox",
+              "label": "t:sections.main-register.blocks.custom_field.settings.type.options__3.label"
+            },
+            {
+              "value": "radio",
+              "label": "t:sections.main-register.blocks.custom_field.settings.type.options__4.label"
+            },
+            {
+              "value": "select",
+              "label": "t:sections.main-register.blocks.custom_field.settings.type.options__5.label"
+            }
+          ],
+          "default": "text",
+          "label": "t:sections.main-register.blocks.custom_field.settings.type.label"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.main-register.blocks.custom_field.settings.label.label",
+          "default": "Your label"
+        },
+        {
+          "type": "checkbox",
+          "id": "required",
+          "label": "t:sections.main-register.blocks.custom_field.settings.required.label",
+          "default": false
+        },
+        {
+          "visible_if": "{{ block.settings.type == 'checkbox' }}",
+          "type": "header",
+          "content": "t:sections.main-register.blocks.custom_field.settings.header__checkbox.content",
+          "info": "t:sections.main-register.blocks.custom_field.settings.header__checkbox.info"
+        },
+        {
+          "visible_if": "{{ block.settings.type == 'checkbox' }}",
+          "type": "text",
+          "id": "checked_value",
+          "label": "t:sections.main-register.blocks.custom_field.settings.checked_value.label",
+          "default": "Yes"
+        },
+        {
+          "visible_if": "{{ block.settings.type == 'checkbox' }}",
+          "type": "text",
+          "id": "unchecked_value",
+          "label": "t:sections.main-register.blocks.custom_field.settings.unchecked_value.label",
+          "default": "No"
+        },
+        {
+          "visible_if": "{{ block.settings.type == 'radio' }}",
+          "type": "header",
+          "content": "t:sections.main-register.blocks.custom_field.settings.header__radio.content",
+          "info": "t:sections.main-register.blocks.custom_field.settings.header__radio.info"
+        },
+        {
+          "visible_if": "{{ block.settings.type == 'radio' }}",
+          "type": "text",
+          "id": "radio_options",
+          "label": "t:sections.main-register.blocks.custom_field.settings.options.label",
+          "info": "t:sections.main-register.blocks.custom_field.settings.options.info"
+        },
+        {
+          "visible_if": "{{ block.settings.type == 'select' }}",
+          "type": "header",
+          "content": "t:sections.main-register.blocks.custom_field.settings.header__dropdown.content",
+          "info": "t:sections.main-register.blocks.custom_field.settings.header__dropdown.info"
+        },
+        {
+          "visible_if": "{{ block.settings.type == 'select' }}",
+          "type": "text",
+          "id": "select_options",
+          "label": "t:sections.main-register.blocks.custom_field.settings.options.label",
+          "info": "t:sections.main-register.blocks.custom_field.settings.options.info"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
