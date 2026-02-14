@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
         }
 
         // Validate request body
-        const { phone, locale } = req.body || {};
+        const { phone } = req.body || {};
 
         if (!phone || typeof phone !== 'string') {
             return res.status(400).json({
@@ -58,16 +58,15 @@ module.exports = async (req, res) => {
 
         const client = twilio(accountSid, authToken);
 
+        // Force locale to English so SMS is always in English
+        const locale = 'en';
+
         // Prepare verification parameters
         const verificationParams = {
             to: phone,
             channel: 'sms',
+            locale: locale,
         };
-        
-        // Add locale if provided (default will be 'en' for English)
-        if (locale && typeof locale === 'string') {
-            verificationParams.locale = locale;
-        }
 
         const verification = await client.verify.v2
             .services(verifyServiceSid)
