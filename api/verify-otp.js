@@ -1,14 +1,23 @@
 const twilio = require('twilio');
 
 module.exports = async (req, res) => {
-    // Set CORS headers — use ALLOWED_ORIGIN env var to restrict in production
-    let allowedOrigin = (process.env.ALLOWED_ORIGIN || '*')
-        .replace(/[\r\n\t\s]+/g, '') // Remove all whitespace chars
-        .replace(/^["']+|["']+$/g, ''); // Remove quotes
-    if (!allowedOrigin) allowedOrigin = '*';
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+    // Set CORS headers - support multiple domains
+    const allowedOrigins = [
+        'https://fpvdepot.com',
+        'https://hxnxj0-zq.myshopify.com',
+        'http://localhost:3000' // For local testing
+    ];
+    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigins[0]);
+    }
+    
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     // Handle preflight
     if (req.method === 'OPTIONS') {
