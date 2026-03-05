@@ -1,15 +1,18 @@
 {% comment %}
-  OTP Verification Form — Shopify Liquid Snippet
-  
-  HOW TO USE:
-  1. Go to Shopify Admin → Online Store → Themes → Edit Code
-  2. Under "Sections" or "Snippets", create a new snippet called "otp-form"
-  3. Paste this entire file content
-  4. Include it in any template with:  {% render 'otp-form' %}
-  
-  IMPORTANT: Replace YOUR_VERCEL_URL below with your actual Vercel deployment URL
-  Your Shopify store: https://hxnxj0-zq.myshopify.com
+Editted by Shazaan Ashraff
 {% endcomment %}
+
+{% comment %} Hidden form to update customer phone via Shopify native endpoint {% endcomment %}
+{% if customer %}
+<form method="post" action="/account" id="customer-phone-update-form" style="display:none;">
+  <input type="hidden" name="form_type" value="customer">
+  <input type="hidden" name="utf8" value="✓">
+  <input type="hidden" name="customer[first_name]" value="{{ customer.first_name }}">
+  <input type="hidden" name="customer[last_name]" value="{{ customer.last_name }}">
+  <input type="hidden" name="customer[email]" value="{{ customer.email }}">
+  <input type="hidden" name="customer[phone]" id="hidden-phone-field" value="">
+</form>
+{% endif %}
 
 <style>
   .otp-section {
@@ -95,31 +98,89 @@
     color: #991b1b;
     border: 1px solid #fecaca;
   }
+
+  .otp-form__already-verified {
+    background: #ecfdf5;
+    border: 2px solid #10b981;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  .otp-form__already-verified h3 {
+    color: #065f46;
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .otp-form__already-verified p {
+    color: #047857;
+    margin-bottom: 0;
+  }
 </style>
 
 <div class="otp-section">
-  <h2>Phone Verification</h2>
-  <p>Enter your phone number to receive a one-time password via SMS.</p>
-  
-  <div class="otp-form__group">
-    <input 
-      type="tel" 
-      id="otp-phone-input" 
-      class="otp-form__input" 
-      placeholder="+94771234567"
-      aria-label="Phone number"
-    />
-    <button id="otp-send-btn" class="otp-form__btn" onclick="handleSendOtp()">
-      Send OTP
-    </button>
-  </div>
+  {% comment %} Check if customer already has verified phone {% endcomment %}
+  {% if customer and customer.phone != blank %}
+    <div class="otp-form__already-verified">
+      <h3>✓ Phone Already Verified</h3>
+      <p>Your phone number <strong>{{ customer.phone }}</strong> is verified.</p>
+      <p style="margin-top: 12px; font-size: 13px;">Redirecting to checkout...</p>
+    </div>
+    <script>
+      // Auto-redirect verified customers to checkout
+      setTimeout(function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnUrl = urlParams.get('return') || '/checkout';
+        window.location.href = returnUrl;
+      }, 2000);
+    </script>
+  {% else %}
+    {% comment %} Show verification form for customers without phone {% endcomment %}
+    <h2>Phone Verification</h2>
+    <p>Enter your phone number to receive a one-time password via SMS.</p>
 
-  <div id="otp-message" class="otp-form__message"></div>
+    <!-- Phone + Send -->
+    <div class="otp-form__group">
+      <input
+        type="tel"
+        id="otp-phone-input"
+        class="otp-form__input"
+        placeholder="+9715xxxxxxxx"
+        aria-label="Phone number"
+      />
+      <button id="otp-send-btn" class="otp-form__btn" type="button" onclick="handleSendOtp()">
+        Send OTP
+      </button>
+    </div>
+
+    <div id="otp-message" class="otp-form__message"></div>
+
+    <!-- OTP verify section (hidden until OTP is sent) -->
+    <div id="otp-verify-section" style="display:none; margin-top:14px;">
+      <div class="otp-form__group">
+        <input
+          type="text"
+          id="otp-code-input"
+          class="otp-form__input"
+          placeholder="Enter 6-digit OTP"
+          inputmode="numeric"
+          maxlength="6"
+          aria-label="OTP code"
+        />
+        <button id="otp-verify-btn" class="otp-form__btn" type="button" onclick="handleVerifyOtp()">
+          Verify
+        </button>
+      </div>
+    </div>
+  {% endif %}
 </div>
 
 <script>
-  // ⚠️ REPLACE THIS with your actual Vercel deployment URL
-  const OTP_API_URL = 'https://fpv-lovat.vercel.app/api/send-otp';
+  // Vercel API endpoints - only for OTP send/verify
+  const OTP_API_BASE = 'https://fpv-lovat.vercel.app/api';
+  const OTP_SEND_URL = OTP_API_BASE + '/send-otp';
+  const OTP_VERIFY_URL = OTP_API_BASE + '/verify-otp';
 
   async function handleSendOtp() {
     const phoneInput = document.getElementById('otp-phone-input');
@@ -131,18 +192,19 @@
     messageDiv.className = 'otp-form__message';
     messageDiv.textContent = '';
 
-    // Client-side validation
+    // Hide verify section until OTP is sent
+    document.getElementById('otp-verify-section').style.display = 'none';
+
     if (!phone) {
       showMessage(messageDiv, 'Please enter your phone number.', 'error');
       return;
     }
 
-    // Disable button while loading
     sendBtn.disabled = true;
     sendBtn.textContent = 'Sending...';
 
     try {
-      const response = await fetch(OTP_API_URL, {
+      const response = await fetch(OTP_SEND_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: phone })
@@ -152,6 +214,11 @@
 
       if (data.success) {
         showMessage(messageDiv, '✓ OTP sent! Check your phone for the verification code.', 'success');
+
+        // Show OTP input section
+        document.getElementById('otp-verify-section').style.display = 'block';
+        document.getElementById('otp-code-input').value = '';
+        document.getElementById('otp-code-input').focus();
       } else {
         showMessage(messageDiv, data.error || 'Failed to send OTP. Please try again.', 'error');
       }
@@ -160,6 +227,96 @@
     } finally {
       sendBtn.disabled = false;
       sendBtn.textContent = 'Send OTP';
+    }
+  }
+
+  async function handleVerifyOtp() {
+    const phone = document.getElementById('otp-phone-input').value.trim();
+    const otp = document.getElementById('otp-code-input').value.trim();
+    const messageDiv = document.getElementById('otp-message');
+    const verifyBtn = document.getElementById('otp-verify-btn');
+
+    // Reset message
+    messageDiv.className = 'otp-form__message';
+    messageDiv.textContent = '';
+
+    if (!phone) {
+      showMessage(messageDiv, 'Please enter your phone number first.', 'error');
+      return;
+    }
+
+    if (!otp || otp.length < 4) {
+      showMessage(messageDiv, 'Please enter the OTP code.', 'error');
+      return;
+    }
+
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying...';
+
+    try {
+      // Step 1: Verify OTP with Twilio
+      const response = await fetch(OTP_VERIFY_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone, otp: otp })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showMessage(messageDiv, '✓ Phone verified successfully!', 'success');
+
+        // Lock fields
+        document.getElementById('otp-phone-input').readOnly = true;
+        document.getElementById('otp-code-input').readOnly = true;
+        verifyBtn.textContent = 'Verified ✓';
+
+        // Step 2: Store phone number to Shopify customer via form submission
+        const customerForm = document.getElementById('customer-phone-update-form');
+        
+        if (customerForm) {
+          showMessage(messageDiv, '✓ Verified! Saving to your account...', 'success');
+          
+          // Populate the phone field in the hidden form
+          document.getElementById('hidden-phone-field').value = phone;
+          
+          // Add a hidden input to capture the return URL after form submission
+          const urlParams = new URLSearchParams(window.location.search);
+          const returnUrl = urlParams.get('return') || '/checkout';
+          
+          // Create a return URL input
+          const returnInput = document.createElement('input');
+          returnInput.type = 'hidden';
+          returnInput.name = 'return_to';
+          returnInput.value = returnUrl;
+          customerForm.appendChild(returnInput);
+          
+          // Submit the form to update customer account
+          showMessage(messageDiv, '✓ Phone saved! Redirecting to checkout...', 'success');
+          
+          setTimeout(function() {
+            customerForm.submit();
+          }, 1500);
+        } else {
+          // No form - probably not logged in
+          showMessage(messageDiv, '✓ Verified! Please log in to save your phone number.', 'success');
+          
+          // Still redirect if there's a return URL
+          setTimeout(function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const returnUrl = urlParams.get('return') || '/checkout';
+            window.location.href = returnUrl;
+          }, 2000);
+        }
+      } else {
+        showMessage(messageDiv, data.error || 'Invalid OTP. Try again.', 'error');
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = 'Verify';
+      }
+    } catch (err) {
+      showMessage(messageDiv, 'Network error. Please try again.', 'error');
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Verify';
     }
   }
 

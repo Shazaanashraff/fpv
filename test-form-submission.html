@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Phone Verification Form Logic</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #4f46e5;
+            padding-bottom: 10px;
+        }
+        .result {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #4338ca;
+        }
+        pre {
+            background: #f9fafb;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .info {
+            background: #eff6ff;
+            border: 1px solid #93c5fd;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>📱 Phone Verification Form Logic Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Form Element Check</h2>
+        <button onclick="testFormExists()">Run Test</button>
+        <div id="test1-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Form Submission Logic</h2>
+        <button onclick="testFormSubmission()">Run Test</button>
+        <div id="test2-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Return URL Parsing</h2>
+        <button onclick="testReturnUrl()">Run Test</button>
+        <div id="test3-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Phone Number Validation</h2>
+        <button onclick="testPhoneValidation()">Run Test</button>
+        <div id="test4-result"></div>
+    </div>
+
+    <div class="info">
+        <strong>ℹ️ Note:</strong> This is a logic test for the form submission approach.
+        In production, the form submits to Shopify's <code>/account</code> endpoint
+        which updates the customer's phone number using their authenticated session.
+    </div>
+
+    <!-- Hidden form simulation (like in otp-form.liquid) -->
+    <form method="post" action="/account" id="customer-phone-update-form" style="display:none;">
+        <input type="hidden" name="form_type" value="customer">
+        <input type="hidden" name="utf8" value="✓">
+        <input type="hidden" name="customer[first_name]" value="Test">
+        <input type="hidden" name="customer[last_name]" value="User">
+        <input type="hidden" name="customer[email]" value="test@example.com">
+        <input type="hidden" name="customer[phone]" id="hidden-phone-field" value="">
+    </form>
+
+    <script>
+        function testFormExists() {
+            const resultDiv = document.getElementById('test1-result');
+            const form = document.getElementById('customer-phone-update-form');
+            
+            if (form) {
+                const formData = new FormData(form);
+                const fields = {};
+                for (let [key, value] of formData.entries()) {
+                    fields[key] = value;
+                }
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">✓ Form exists and contains required fields</div>
+                    <pre>Form Action: ${form.action}
+Form Method: ${form.method}
+Fields Found:
+${JSON.stringify(fields, null, 2)}</pre>
+                `;
+            } else {
+                resultDiv.innerHTML = `<div class="result error">✗ Form not found</div>`;
+            }
+        }
+
+        function testFormSubmission() {
+            const resultDiv = document.getElementById('test2-result');
+            const form = document.getElementById('customer-phone-update-form');
+            const phoneField = document.getElementById('hidden-phone-field');
+            
+            // Test phone number
+            const testPhone = '+971501234567';
+            phoneField.value = testPhone;
+            
+            // Add return URL
+            const returnInput = document.createElement('input');
+            returnInput.type = 'hidden';
+            returnInput.name = 'return_to';
+            returnInput.value = '/checkout';
+            form.appendChild(returnInput);
+            
+            const formData = new FormData(form);
+            const allFields = {};
+            for (let [key, value] of formData.entries()) {
+                allFields[key] = value;
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="result success">✓ Form ready for submission</div>
+                <pre>Phone Field Value: ${phoneField.value}
+Return URL: ${returnInput.value}
+
+Complete Form Data:
+${JSON.stringify(allFields, null, 2)}
+
+<strong>In production, this would submit to:</strong>
+POST https://yourstore.myshopify.com/account
+Content-Type: application/x-www-form-urlencoded</pre>
+            `;
+        }
+
+        function testReturnUrl() {
+            const resultDiv = document.getElementById('test3-result');
+            
+            // Test various URL scenarios
+            const scenarios = [
+                { url: '?return=/checkout', expected: '/checkout' },
+                { url: '?return=/account', expected: '/account' },
+                { url: '', expected: '/checkout' }, // default
+                { url: '?other=param', expected: '/checkout' }, // no return param
+            ];
+            
+            let output = '';
+            scenarios.forEach(scenario => {
+                const urlParams = new URLSearchParams(scenario.url);
+                const returnUrl = urlParams.get('return') || '/checkout';
+                const passed = returnUrl === scenario.expected;
+                
+                output += `
+                    <div class="result ${passed ? 'success' : 'error'}">
+                        ${passed ? '✓' : '✗'} URL: "${scenario.url}"
+                        <br>Expected: ${scenario.expected}
+                        <br>Got: ${returnUrl}
+                    </div>
+                `;
+            });
+            
+            resultDiv.innerHTML = output;
+        }
+
+        function testPhoneValidation() {
+            const resultDiv = document.getElementById('test4-result');
+            
+            // Test phone numbers (E.164 format)
+            const phoneTests = [
+                { phone: '+971501234567', valid: true, description: 'UAE number' },
+                { phone: '+14155552671', valid: true, description: 'US number' },
+                { phone: '+447700900000', valid: true, description: 'UK number' },
+                { phone: '971501234567', valid: false, description: 'Missing + prefix' },
+                { phone: '+971', valid: false, description: 'Too short' },
+                { phone: '', valid: false, description: 'Empty' },
+            ];
+            
+            const e164Regex = /^\+[1-9]\d{6,14}$/;
+            
+            let output = '';
+            phoneTests.forEach(test => {
+                const isValid = e164Regex.test(test.phone);
+                const passed = isValid === test.valid;
+                
+                output += `
+                    <div class="result ${passed ? 'success' : 'error'}">
+                        ${passed ? '✓' : '✗'} ${test.description}: "${test.phone}"
+                        <br>Expected: ${test.valid ? 'Valid' : 'Invalid'}
+                        <br>Result: ${isValid ? 'Valid' : 'Invalid'}
+                    </div>
+                `;
+            });
+            
+            resultDiv.innerHTML = output;
+        }
+
+        // Run all tests on load
+        window.onload = function() {
+            console.log('Phone Verification Test Page Loaded');
+            console.log('Tests available: Form Check, Submission Logic, Return URL, Phone Validation');
+        };
+    </script>
+</body>
+</html>

@@ -9,9 +9,14 @@
   /* Inline error messages */
   .phone-error {
     color: #ff3b30;
-    font-size: 0.875rem;
-    margin-top: 4px;
+    font-size: 0.75rem;
+    margin-top: 2px;
     display: none;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    line-height: 1.2;
   }
 
   .input.invalid {
@@ -21,6 +26,7 @@
   /* Phone field styling - flex layout */
   .phone-field {
     position: relative;
+    padding-bottom: 20px;
   }
 
   .phone-field .iti {
@@ -109,7 +115,7 @@
   .phone-wrapper {
     display: flex;
     gap: 10px;
-    align-items: stretch;
+    align-items: flex-start;
   }
 
   .phone-wrapper .phone-field {
@@ -118,6 +124,8 @@
 
   .send-otp-btn {
     padding: 0 20px;
+    height: 45px;
+    flex-shrink: 0;
     background-color: #333;
     color: #fff;
     border: none;
@@ -370,11 +378,11 @@
             />
             <label class="label is-floating" for="RegisterFormPassword">{{ 'customer.register.password' | t }}</label>
             <button type="button" class="password-toggle" id="passwordToggle" aria-label="Toggle password visibility">
-              <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
-              <svg id="eyeOffIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
+              <svg id="eyeOffIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
               </svg>
             </button>
@@ -390,6 +398,7 @@
                   id="RegisterFormPhone"
                   placeholder="Phone Number"
                   autocomplete="tel"
+                  inputmode="numeric"
                   required
                 />
                 <!-- Hidden input for actual phone submission -->
@@ -590,11 +599,11 @@
         passwordField.type = type;
         
         if (type === 'password') {
-          eyeIcon.style.display = 'block';
-          eyeOffIcon.style.display = 'none';
-        } else {
           eyeIcon.style.display = 'none';
           eyeOffIcon.style.display = 'block';
+        } else {
+          eyeIcon.style.display = 'block';
+          eyeOffIcon.style.display = 'none';
         }
       });
     }
@@ -634,7 +643,7 @@
 
     // Enable/disable Send OTP button based on valid phone
     function updateSendOtpButton() {
-      if (phoneInput.value.trim() !== "" && iti.isValidNumber() && !isPhoneVerified) {
+      if (phoneInput.value.trim() !== "" && !hasCountryCodePrefix(phoneInput.value) && iti.isValidNumber() && !isPhoneVerified) {
         sendOtpBtn.disabled = false;
       } else {
         sendOtpBtn.disabled = true;
@@ -659,8 +668,13 @@
 
     // Validation on blur
     phoneInput.addEventListener('blur', function() {
-      if (phoneInput.value.trim() !== "" && !iti.isValidNumber()) {
+      if (hasCountryCodePrefix(phoneInput.value)) {
         phoneInput.classList.add("invalid");
+        phoneError.textContent = "Invalid code — do not include the country code. Use the country selector instead.";
+        phoneError.style.display = "block";
+      } else if (phoneInput.value.trim() !== "" && !iti.isValidNumber()) {
+        phoneInput.classList.add("invalid");
+        phoneError.textContent = "Enter a valid phone number";
         phoneError.style.display = "block";
       } else {
         phoneInput.classList.remove("invalid");
@@ -669,10 +683,41 @@
       updateSendOtpButton();
     });
 
+    // Detect country code in phone input (user should use the dropdown instead)
+    function hasCountryCodePrefix(value) {
+      const trimmed = value.trim();
+      // Starts with + (e.g. +971, +94, +1)
+      if (/^\+/.test(trimmed)) return true;
+      // Starts with 00 followed by a digit (international dialing prefix)
+      if (/^00\d/.test(trimmed)) return true;
+      return false;
+    }
+
     // Clear error on input and update button
     phoneInput.addEventListener('input', function() {
+      // Strip all non-numeric characters from input
+      const cleaned = phoneInput.value.replace(/[^0-9]/g, '');
+      if (phoneInput.value !== cleaned) {
+        phoneInput.value = cleaned;
+        phoneInput.classList.add("invalid");
+        phoneError.textContent = "Invalid number — only numeric digits are allowed.";
+        phoneError.style.display = "block";
+        sendOtpBtn.disabled = true;
+        return;
+      }
+
       phoneInput.classList.remove("invalid");
       phoneError.style.display = "none";
+
+      // Check if user typed a country code in the phone field
+      if (hasCountryCodePrefix(phoneInput.value)) {
+        phoneInput.classList.add("invalid");
+        phoneError.textContent = "Invalid code — do not include the country code. Use the country selector instead.";
+        phoneError.style.display = "block";
+        sendOtpBtn.disabled = true;
+        return;
+      }
+
       // Reset verification if phone number changes
       if (isPhoneVerified) {
         isPhoneVerified = false;
@@ -682,6 +727,19 @@
         updateSubmitButton();
       }
       updateSendOtpButton();
+    });
+
+    // Block non-numeric key presses on phone input
+    phoneInput.addEventListener('keypress', function(e) {
+      // Allow control keys (backspace, tab, etc.)
+      if (e.ctrlKey || e.metaKey) return;
+      // Block anything that isn't a digit
+      if (!/[0-9]/.test(e.key)) {
+        e.preventDefault();
+        phoneInput.classList.add("invalid");
+        phoneError.textContent = "Invalid number — only numeric digits are allowed.";
+        phoneError.style.display = "block";
+      }
     });
     
     // Add listeners to other form fields to update submit button
@@ -696,9 +754,36 @@
       const fullNumber = iti.getNumber();
       
       sendOtpBtn.disabled = true;
-      sendOtpBtn.textContent = 'Sending...';
+      sendOtpBtn.textContent = 'Checking...';
 
       try {
+        // First check if phone number is already registered
+        const checkResponse = await fetch(OTP_API_BASE + '/check-phone', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          mode: 'cors',
+          cache: 'no-cache',
+          body: JSON.stringify({ phone: fullNumber }),
+        });
+
+        const checkData = await checkResponse.json();
+
+        if (checkResponse.ok && checkData.exists) {
+          // Phone number already registered
+          sendOtpBtn.textContent = 'Send OTP';
+          sendOtpBtn.disabled = false;
+          phoneInput.classList.add("invalid");
+          phoneError.textContent = "This phone number is already registered. Please use a different number or sign in.";
+          phoneError.style.display = "block";
+          otpMessage.textContent = '';
+          otpMessage.className = 'otp-message';
+          return;
+        }
+
+        sendOtpBtn.textContent = 'Sending...';
+
         // Call Vercel-hosted Twilio API to send OTP
         const response = await fetch(OTP_API_BASE + '/send-otp', {
           method: 'POST',
