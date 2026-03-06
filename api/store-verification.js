@@ -92,6 +92,7 @@ module.exports = async (req, res) => {
                 customer: {
                     id: customerId,
                     phone: phone,
+                    tags: "otp_verified"
                 },
             }),
         });
