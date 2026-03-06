@@ -60,8 +60,8 @@ module.exports = async (req, res) => {
     const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
     const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
     const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID?.trim();
-    const shopifyStore = process.env.SHOPIFY_STORE?.trim();
-    const shopifyAdminToken = process.env.SHOPIFY_ADMIN_TOKEN?.trim();
+    const shopifyStore = process.env.SHOPIFY_STORE_DOMAIN?.trim();
+    const shopifyAdminToken = process.env.SHOPIFY_ADMIN_API_TOKEN?.trim();
 
     if (!accountSid || !authToken || !verifyServiceSid) {
         console.error('Missing Twilio environment variables');
