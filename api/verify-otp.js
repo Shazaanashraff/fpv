@@ -33,7 +33,7 @@ module.exports = async (req, res) => {
     }
 
     // Validate request body
-    const { phone, otp } = req.body || {};
+    const { phone, otp, customerId } = req.body || {};
 
     if (!phone || typeof phone !== 'string') {
         return res.status(400).json({
@@ -49,10 +49,19 @@ module.exports = async (req, res) => {
         });
     }
 
+    if (!customerId || typeof customerId !== 'string') {
+    return res.status(400).json({
+        success: false,
+        error: 'Missing or invalid "customerId" field.',
+    });
+    }
+
     // Read Twilio credentials from environment variables
     const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
     const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
     const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID?.trim();
+    const shopifyStore = process.env.SHOPIFY_STORE?.trim();
+    const shopifyAdminToken = process.env.SHOPIFY_ADMIN_TOKEN?.trim();
 
     if (!accountSid || !authToken || !verifyServiceSid) {
         console.error('Missing Twilio environment variables');
@@ -60,6 +69,14 @@ module.exports = async (req, res) => {
             success: false,
             error: 'Server configuration error. Twilio credentials are not set.',
         });
+    }
+
+    if (!shopifyStore || !shopifyAdminToken) {
+    console.error('Missing Shopify environment variables');
+    return res.status(500).json({
+        success: false,
+        error: 'Server configuration error. Shopify credentials are not set.',
+    });
     }
 
     try {
@@ -73,16 +90,66 @@ module.exports = async (req, res) => {
             });
 
         if (verificationCheck.status === 'approved') {
-            return res.status(200).json({
-                success: true,
-                message: 'Phone number verified successfully',
-                data: {
-                    status: verificationCheck.status,
-                    to: phone,
-                    valid: true,
+    const customerGid = customerId.startsWith('gid://shopify/Customer/')
+        ? customerId
+        : `gid://shopify/Customer/${customerId}`;
+
+    const mutation = `
+        mutation customerUpdate($input: CustomerInput!) {
+            customerUpdate(input: $input) {
+                customer {
+                    id
+                    note
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+    `;
+
+    const noteText = `Phone verified via OTP: ${phone}`;
+
+    const shopifyResponse = await fetch(`https://${shopifyStore}/admin/api/2025-01/graphql.json`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': shopifyAdminToken,
+        },
+        body: JSON.stringify({
+            query: mutation,
+            variables: {
+                input: {
+                    id: customerGid,
+                    note: noteText,
                 },
-            });
-        } else {
+            },
+        }),
+    });
+
+    const shopifyData = await shopifyResponse.json();
+    const userErrors = shopifyData?.data?.customerUpdate?.userErrors || [];
+
+    if (!shopifyResponse.ok || userErrors.length > 0) {
+        console.error('Shopify customer update failed:', JSON.stringify(shopifyData, null, 2));
+        return res.status(500).json({
+            success: false,
+            error: userErrors[0]?.message || 'OTP verified, but failed to save customer note.',
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: 'Phone number verified successfully',
+        data: {
+            status: verificationCheck.status,
+            to: phone,
+            valid: true,
+            noteSaved: true,
+        },
+    });
+} else {
             return res.status(400).json({
                 success: false,
                 error: 'Invalid OTP code. Please try again.',
