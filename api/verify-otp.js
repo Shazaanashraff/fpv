@@ -123,6 +123,7 @@ module.exports = async (req, res) => {
                 input: {
                     id: customerGid,
                     note: noteText,
+                    tags: ["otp_verified"],
                 },
             },
         }),
